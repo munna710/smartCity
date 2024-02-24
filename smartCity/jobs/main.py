@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from confluent_kafka import SerializingProducer
 import simplejson as json
 import random
+import time
 
 LONDON_COORDINATES = {
     "lat": 51.509865,
@@ -104,9 +105,24 @@ def generate_vehicle_data(vehicle_id):
         'fuelType': 'Hybrid'
     }
 
+def json_serializer(obj):
+    if isinstance(obj,uuid.UUID):
+        return str(obj)
+    raise TypeError ("Type %s not serializable" % type(obj))
+def produce_data_to_kafka(producer, topic, data):
+    producer.produce(
+        topic=topic,
+        key=str(data['id']),
+        value=json.dumps(data,default = json_serializer).encode('utf-8'),
+        on_delivery=delivery_report
+    )
+    producer.flush()
 
-    
-
+def delivery_report(err, msg):
+    if err is not None:
+        print(f"Failed to deliver message: {msg.value()}: {err.str()}")
+    else:
+        print(f"Message delivered to {msg.topic()}: {msg.value()}")
 
 def simulate_journey(producer, vehicle_id):
     while True:
@@ -115,13 +131,22 @@ def simulate_journey(producer, vehicle_id):
         traffic_data = generate_traffic_camera_data(vehicle_id, vehicle_data['timestamp'],vehicle_data['location'], camera_id='camera-123')
         weather_data = generate_weather_data(vehicle_id, vehicle_data['timestamp'],vehicle_data['location'])
         emergency_incident_data = generate_emergency_incident_data(vehicle_id, vehicle_data['timestamp'],vehicle_data['location'])
-        print(vehicle_data)
-        print(gps_data)
-        print(traffic_data)
-        print(weather_data)
-        print(emergency_incident_data)
+        # print(vehicle_data)
+        # print(gps_data)
+        # print(traffic_data)
+        # print(weather_data)
+        # print(emergency_incident_data)
+        if (vehicle_data['location'][0] >= BIRMINGHAM_COORDINATES['lat'] and vehicle_data['location'][1] <= BIRMINGHAM_COORDINATES['lon']):
+            print('vehicle has reached Birmingham, ending simulation...')
+            break
+        produce_data_to_kafka(producer,VEHICLE_TOPIC,vehicle_data)
+        produce_data_to_kafka(producer,GPS_TOPIC,gps_data)
+        produce_data_to_kafka(producer,TRAFFIC_TOPIC,traffic_data)
+        produce_data_to_kafka(producer,WEATHER_TOPIC,weather_data)
+        produce_data_to_kafka(producer,EMERGENCY_TOPIC,emergency_incident_data)
 
-        break
+        time.sleep(5)
+        # break
         # Send data to Kafka topics here using the producer
 
 
