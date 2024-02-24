@@ -66,7 +66,8 @@ def generate_gps_data(vehicle_id, timestamp,vehicle_type ='private'):
         'speed': random.uniform(10, 40),  # km/h
         'direction': 'North-East',
         'location': (start_location['lat'], start_location['lon']),
-        'vehicle_type': vehicle_type
+        'vehicle_type': vehicle_type,
+        
      }
 def generate_weather_data(vehicle_id, timestamp,location):
     return{
@@ -102,7 +103,8 @@ def generate_vehicle_data(vehicle_id):
         'make': 'BMW',
         'model': 'C500',
         'year': 2019,
-        'fuelType': 'Hybrid'
+        'fuelType': 'Hybrid',
+        'year': 2024
     }
 
 def json_serializer(obj):
